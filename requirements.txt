@@ -41,6 +41,6 @@ chromadb
 python-dotenv==1.0.0
 serpapi==0.1.5
 python-magic==0.4.27
-tavily
+tavily-python
 anthropic
 youtube_search
