@@ -132,8 +132,8 @@ def main():
     """, unsafe_allow_html=True)
 
     # Header section
-    st.title("🔍 Sage-Lens: Agentic Research Engine")
-    st.markdown("### Your AI-Powered Technical Research Companion")
+    st.title("🔍 Sage-Lens: Agentic AI Research Engine")
+    st.markdown("### Your AI-Powered Research Companion")
     st.write("---")
 
     # Initialize session state
