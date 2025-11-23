@@ -21,12 +21,27 @@ class SageLensSystem:
             # Helper function to get secrets: Streamlit Cloud first, then env vars
             def get_secret(key: str, default: str = "") -> str:
                 """Get secret from Streamlit secrets (Cloud) or environment variables (local)"""
+                # Try Streamlit secrets first (for Streamlit Cloud)
                 try:
-                    # Try Streamlit secrets first (for Streamlit Cloud)
-                    if hasattr(st, 'secrets') and key in st.secrets:
-                        value = st.secrets[key]
-                        return str(value).strip().strip('"').strip("'")
-                except (AttributeError, KeyError, TypeError):
+                    if hasattr(st, 'secrets') and st.secrets is not None:
+                        # Try accessing as attribute (st.secrets.KEY_NAME)
+                        try:
+                            value = getattr(st.secrets, key, None)
+                            if value:
+                                return str(value).strip().strip('"').strip("'")
+                        except (AttributeError, TypeError):
+                            pass
+                        
+                        # Try accessing as dictionary (st.secrets["KEY_NAME"])
+                        try:
+                            if isinstance(st.secrets, dict) and key in st.secrets:
+                                value = st.secrets[key]
+                                if value:
+                                    return str(value).strip().strip('"').strip("'")
+                        except (KeyError, TypeError):
+                            pass
+                except Exception:
+                    # If st.secrets fails, continue to env vars
                     pass
                 
                 # Fall back to environment variables (for local development)
@@ -39,14 +54,34 @@ class SageLensSystem:
             tavily_key = get_secret("TAVILY_API_KEY")
             serper_key = get_secret("SERPER_API_KEY")
             
-            # Validate API keys are not empty
+            # Validate API keys are not empty BEFORE creating clients
+            errors = []
             if not openai_key:
-                raise ValueError("OPENAI_API_KEY is not set. Please add it to Streamlit Secrets (Cloud) or .env file (local).")
+                errors.append("OPENAI_API_KEY")
             if not anthropic_key:
-                raise ValueError("ANTHROPIC_API_KEY is not set. Please add it to Streamlit Secrets (Cloud) or .env file (local).")
+                errors.append("ANTHROPIC_API_KEY")
+            
+            if errors:
+                error_msg = f"❌ Missing required API keys: {', '.join(errors)}\n\n"
+                error_msg += "📝 NEXT STEPS:\n\n"
+                error_msg += "🌐 If deploying on Streamlit Cloud:\n"
+                error_msg += "   1. Go to your app → Settings → Secrets\n"
+                error_msg += "   2. Add these keys:\n"
+                error_msg += "      [secrets]\n"
+                error_msg += "      OPENAI_API_KEY = \"sk-proj-...\"\n"
+                error_msg += "      ANTHROPIC_API_KEY = \"sk-ant-api03-...\"\n"
+                error_msg += "   3. Click 'Save' and wait for app to restart\n\n"
+                error_msg += "💻 If running locally:\n"
+                error_msg += "   1. Create a .env file in the project root\n"
+                error_msg += "   2. Add: OPENAI_API_KEY=\"sk-proj-...\"\n"
+                error_msg += "   3. Add: ANTHROPIC_API_KEY=\"sk-ant-api03-...\"\n"
+                error_msg += "   4. Restart the app\n\n"
+                error_msg += "📖 See STREAMLIT_SECRETS_SETUP.md for detailed instructions"
+                raise ValueError(error_msg)
             
             # Initialize OpenAI client - latest SDK uses api_key parameter
             # OpenAI SDK 2.0+ uses: OpenAI(api_key=key)
+            # Only create clients if keys are valid
             self.llms = {
                 "openai": OpenAI(api_key=openai_key),
                 "anthropic": anthropic.Anthropic(api_key=anthropic_key)
@@ -67,9 +102,24 @@ class SageLensSystem:
             else:
                 self.serper_config = None
                 
+        except ValueError as e:
+            # Show detailed error with next steps
+            st.error(str(e))
+            st.stop()  # Stop execution to prevent further errors
         except Exception as e:
-            st.error(f"Initialization failed: {str(e)}")
-            raise
+            error_msg = f"❌ Initialization failed: {str(e)}\n\n"
+            error_msg += "📝 NEXT STEPS:\n\n"
+            error_msg += "🌐 If deploying on Streamlit Cloud:\n"
+            error_msg += "   1. Go to your app → Settings → Secrets\n"
+            error_msg += "   2. Add your API keys (see STREAMLIT_SECRETS_SETUP.md)\n"
+            error_msg += "   3. Click 'Save' and wait for app to restart\n\n"
+            error_msg += "💻 If running locally:\n"
+            error_msg += "   1. Check your .env file exists and has correct keys\n"
+            error_msg += "   2. Verify keys are not empty or have extra spaces\n"
+            error_msg += "   3. Restart the app\n\n"
+            error_msg += "📖 See STREAMLIT_SECRETS_SETUP.md for detailed instructions"
+            st.error(error_msg)
+            st.stop()  # Stop execution to prevent further errors
 
     def _search_web(self, query: str) -> list:
         all_results = []
