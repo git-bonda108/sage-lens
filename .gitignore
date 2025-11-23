@@ -2,7 +2,10 @@
 .env
 .env.local
 .env.*.local
+<<<<<<< HEAD
 *.env
+=======
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
 
 # Python
 __pycache__/
@@ -38,11 +41,19 @@ env/
 *.swp
 *.swo
 *~
+<<<<<<< HEAD
 .DS_Store
+=======
+
+# OS
+.DS_Store
+Thumbs.db
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
 
 # Streamlit
 .streamlit/secrets.toml
 
+<<<<<<< HEAD
 # Memory and artifacts
 memory/
 artifacts/
@@ -67,4 +78,8 @@ htmlcov/
 *.tmp
 *.temp
 .cache/
+=======
+# Logs
+*.log
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
 

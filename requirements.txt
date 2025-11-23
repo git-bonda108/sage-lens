@@ -1,0 +1,16 @@
+# === Core Framework ===
+streamlit>=1.32.0
+python-dotenv>=1.0.0
+
+# === LLM Providers ===
+openai>=1.14.0
+anthropic>=0.8.0
+
+# === Web Search & Research ===
+tavily-python>=0.3.0
+requests>=2.31.0
+youtube_search>=1.1.0
+
+# === Optional: Data Processing (if needed) ===
+pandas>=2.0.0
+numpy>=1.24.0

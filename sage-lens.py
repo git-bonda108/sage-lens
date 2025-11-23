@@ -8,13 +8,18 @@ from youtube_search import YoutubeSearch
 from dotenv import load_dotenv
 import anthropic
 
+<<<<<<< HEAD
 # Load environment variables, overriding any existing ones
 load_dotenv(override=True)
+=======
+load_dotenv()
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
 
 
 class SageLensSystem:
     def __init__(self):
         try:
+<<<<<<< HEAD
             # Force reload environment variables (for local development)
             load_dotenv(override=True)
             
@@ -120,11 +125,29 @@ class SageLensSystem:
             error_msg += "📖 See STREAMLIT_SECRETS_SETUP.md for detailed instructions"
             st.error(error_msg)
             st.stop()  # Stop execution to prevent further errors
+=======
+            self.llms = {
+                "openai": OpenAI(api_key=os.getenv("OPENAI_API_KEY")),
+                "anthropic": anthropic.Anthropic(
+                    api_key=os.getenv("ANTHROPIC_API_KEY")
+                )
+            }
+            self.tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+            self.serper_config = {
+                "url": "https://google.serper.dev/search",
+                "headers": {"X-API-KEY": os.getenv("SERPER_API_KEY")},
+                "timeout": 10
+            }
+        except Exception as e:
+            st.error(f"Initialization failed: {str(e)}")
+            raise
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
 
     def _search_web(self, query: str) -> list:
         all_results = []
         try:
             # Tavily Search
+<<<<<<< HEAD
             if self.tavily:
                 try:
                     tavily_results = self.tavily.search(query=query, max_results=5)
@@ -147,6 +170,21 @@ class SageLensSystem:
                     ])
                 except Exception as e:
                     st.warning(f"Serper search error: {str(e)}")
+=======
+            tavily_results = self.tavily.search(query=query, max_results=5)
+            all_results.extend([
+                {"title": r.get("title", "Untitled"), "url": r["url"]}
+                for r in tavily_results.get("results", []) if "url" in r
+            ])
+
+            # Google Serper
+            response = requests.post(**self.serper_config, json={"q": query, "num": 5})
+            serper_results = response.json()
+            all_results.extend([
+                {"title": r.get("title", "Untitled"), "url": r["link"]}
+                for r in serper_results.get("organic", []) if "link" in r
+            ])
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
 
             # Deduplicate
             seen = set()
@@ -171,11 +209,15 @@ class SageLensSystem:
         try:
             start_time = time.time()
             if provider == "anthropic":
+<<<<<<< HEAD
                 # Anthropic SDK: client.messages.create()
+=======
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
                 response = self.llms[provider].messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=4000,
                     messages=[
+<<<<<<< HEAD
                         {"role": "user", "content": f"Generate comprehensive documentation about: {prompt}"}
                     ]
                 )
@@ -184,29 +226,45 @@ class SageLensSystem:
                 content_text = response.content[0].text if response.content else ""
                 return {
                     "content": content_text,
+=======
+                        {"role": "user", "content": f"Generate comprehensive documentation about: {prompt}"}]
+                )
+                return {
+                    "content": response.content[0].text,
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
                     "provider": "Claude-3.5-Sonnet",
                     "latency": time.time() - start_time
                 }
             else:
+<<<<<<< HEAD
                 # OpenAI SDK 2.0+: client.chat.completions.create()
+=======
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
                 response = self.llms["openai"].chat.completions.create(
                     model="gpt-4-turbo",
                     messages=[{"role": "user", "content": f"Create detailed documentation about: {prompt}"}],
                     temperature=0.3
                 )
+<<<<<<< HEAD
                 # OpenAI response structure: response.choices[0].message.content
+=======
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
                 return {
                     "content": response.choices[0].message.content,
                     "provider": "OpenAI-GPT4",
                     "latency": time.time() - start_time
                 }
         except Exception as e:
+<<<<<<< HEAD
             # More detailed error logging
             error_msg = str(e)
             if "401" in error_msg or "authentication" in error_msg.lower() or "invalid" in error_msg.lower():
                 st.error(f"{provider} authentication error: {error_msg}")
             else:
                 st.error(f"{provider} error: {error_msg}")
+=======
+            st.error(f"{provider} error: {str(e)}")
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
             return None
 
     def process_query(self, topic: str) -> dict:
@@ -270,8 +328,12 @@ def main():
                 if topic.strip():
                     with st.spinner("🔬 Agentic AI processors analyzing..."):
                         st.session_state.current_result = SageLensSystem().process_query(topic)
+<<<<<<< HEAD
                         # Only add to history if content is a dict (successful generation)
                         if isinstance(st.session_state.current_result["content"], dict):
+=======
+                        if st.session_state.current_result["content"]:
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
                             st.session_state.history.append(st.session_state.current_result)
                             st.rerun()
 
@@ -279,6 +341,7 @@ def main():
     if st.session_state.current_result:
         result = st.session_state.current_result
 
+<<<<<<< HEAD
         # Check if content is a dict (successful generation) or string (error/empty)
         if isinstance(result["content"], dict) and result["content"].get("content"):
             # Main content columns
@@ -340,3 +403,60 @@ def main():
 
 if __name__ == "__main__":
     main()
+=======
+        # Main content columns
+        doc_col, ref_col = st.columns([3, 1])
+
+        with doc_col:
+            # Documentation display
+            with st.expander("📄 Generated Documentation", expanded=True):
+                st.markdown(result["content"]["content"], unsafe_allow_html=True)
+
+            # Generation metrics
+            with st.expander("⚙️ Generation Details"):
+                cols = st.columns(2)
+                cols[0].metric("Processing Time", f"{result['content']['latency']:.2f}s")
+                cols[1].metric("AI Engine", result['content']['provider'])
+                st.caption("Powered by Claude-3.5-Sonnet and GPT-4 Turbo")
+
+        with ref_col:
+            # Reference materials
+            with st.container(border=True):
+                st.subheader("🔗 Curated Resources")
+
+                # Web results
+                with st.expander("🌐 Web References", expanded=True):
+                    if result["references"]["web"]:
+                        for i, item in enumerate(result["references"]["web"][:5], 1):
+                            st.markdown(f"{i}. [{item['title']}]({item['url']})")
+                    else:
+                        st.info("No web resources found")
+
+                # Video results
+                with st.expander("🎥 Video Guides"):
+                    if result["references"]["videos"]:
+                        for vid in result["references"]["videos"][:3]:
+                            st.markdown(f"▶️ [{vid['title']}]({vid['url']})")
+                            st.caption(f"Views: {vid.get('views', 'N/A')}")
+                    else:
+                        st.info("No video guides found")
+
+            # Version history
+            with st.expander("🕰 Document Versions"):
+                if len(st.session_state.history) > 1:
+                    for i, rev in enumerate(st.session_state.history):
+                        cols = st.columns([1, 3])
+                        cols[0].button(
+                            f"v{i + 1}",
+                            key=f"load_{i}",
+                            on_click=lambda r=rev: st.session_state.update(current_result=r),
+                            help=f"Load version {i + 1}"
+                        )
+                        cols[1].caption(f"{rev['content']['provider']} | {rev['content']['latency']:.1f}s")
+                else:
+                    st.info("No previous versions")
+
+
+if __name__ == "__main__":
+    main()
+>>>>>>> 63912e8072886598f077c55b6ced6c1ab0884b69
