@@ -148,9 +148,11 @@ class SageLensSystem:
                 except Exception as e:
                     st.warning(f"Serper search error: {str(e)}")
 
-            # Deduplicate
+            # Deduplicate and return top results (already sorted by search relevance from APIs)
             seen = set()
-            return [x for x in all_results if not (x["url"] in seen or seen.add(x["url"]))][:10]
+            unique_results = [x for x in all_results if not (x["url"] in seen or seen.add(x["url"]))]
+            # Return top 10 highest searched/most relevant links
+            return unique_results[:10]
         except Exception as e:
             st.error(f"Search error: {str(e)}")
             return []
@@ -158,11 +160,35 @@ class SageLensSystem:
     def _search_videos(self, query: str) -> list:
         try:
             results = YoutubeSearch(query, max_results=10).to_dict()
-            return [{
-                "title": r.get("title", "Untitled Video"),
-                "url": f"https://youtube.com/watch?v={r['id']}",
-                "views": r.get("views", "N/A")
-            } for r in results if 'id' in r][:5]
+            # Extract videos with views and sort by view count (highest first)
+            videos = []
+            for r in results:
+                if 'id' in r:
+                    views_str = r.get("views", "0")
+                    # Parse views (handles formats like "1.2M views", "500K views", etc.)
+                    try:
+                        views_num = 0
+                        if views_str and views_str != "N/A":
+                            views_clean = views_str.replace(" views", "").replace(",", "").strip()
+                            if "M" in views_clean:
+                                views_num = float(views_clean.replace("M", "")) * 1000000
+                            elif "K" in views_clean:
+                                views_num = float(views_clean.replace("K", "")) * 1000
+                            else:
+                                views_num = float(views_clean) if views_clean.isdigit() else 0
+                    except:
+                        views_num = 0
+                    
+                    videos.append({
+                        "title": r.get("title", "Untitled Video"),
+                        "url": f"https://youtube.com/watch?v={r['id']}",
+                        "views": views_str,
+                        "views_num": views_num
+                    })
+            
+            # Sort by view count (highest first) and return top 5
+            videos_sorted = sorted(videos, key=lambda x: x["views_num"], reverse=True)
+            return [{"title": v["title"], "url": v["url"], "views": v["views"]} for v in videos_sorted[:5]]
         except Exception as e:
             st.error(f"Video search error: {str(e)}")
             return []
@@ -176,7 +202,7 @@ class SageLensSystem:
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=4000,
                     messages=[
-                        {"role": "user", "content": f"Generate comprehensive documentation about: {prompt}"}
+                        {"role": "user", "content": f"Generate a concise, comprehensive summary about: {prompt}"}
                     ]
                 )
                 # Anthropic response structure: response.content is a list of ContentBlock objects
@@ -191,7 +217,7 @@ class SageLensSystem:
                 # OpenAI SDK 2.0+: client.chat.completions.create()
                 response = self.llms["openai"].chat.completions.create(
                     model="gpt-4-turbo",
-                    messages=[{"role": "user", "content": f"Create detailed documentation about: {prompt}"}],
+                    messages=[{"role": "user", "content": f"Create a concise, comprehensive summary about: {prompt}"}],
                     temperature=0.3
                 )
                 # OpenAI response structure: response.choices[0].message.content
