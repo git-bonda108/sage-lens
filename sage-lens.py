@@ -15,20 +15,35 @@ load_dotenv(override=True)
 class SageLensSystem:
     def __init__(self):
         try:
-            # Force reload environment variables
+            # Force reload environment variables (for local development)
             load_dotenv(override=True)
             
-            # Get API keys and strip any quotes or whitespace
-            openai_key = os.getenv("OPENAI_API_KEY", "").strip().strip('"').strip("'")
-            anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip().strip('"').strip("'")
-            tavily_key = os.getenv("TAVILY_API_KEY", "").strip().strip('"').strip("'")
-            serper_key = os.getenv("SERPER_API_KEY", "").strip().strip('"').strip("'")
+            # Helper function to get secrets: Streamlit Cloud first, then env vars
+            def get_secret(key: str, default: str = "") -> str:
+                """Get secret from Streamlit secrets (Cloud) or environment variables (local)"""
+                try:
+                    # Try Streamlit secrets first (for Streamlit Cloud)
+                    if hasattr(st, 'secrets') and key in st.secrets:
+                        value = st.secrets[key]
+                        return str(value).strip().strip('"').strip("'")
+                except (AttributeError, KeyError, TypeError):
+                    pass
+                
+                # Fall back to environment variables (for local development)
+                value = os.getenv(key, default)
+                return str(value).strip().strip('"').strip("'")
+            
+            # Get API keys using the helper function
+            openai_key = get_secret("OPENAI_API_KEY")
+            anthropic_key = get_secret("ANTHROPIC_API_KEY")
+            tavily_key = get_secret("TAVILY_API_KEY")
+            serper_key = get_secret("SERPER_API_KEY")
             
             # Validate API keys are not empty
             if not openai_key:
-                raise ValueError("OPENAI_API_KEY is not set or is empty")
+                raise ValueError("OPENAI_API_KEY is not set. Please add it to Streamlit Secrets (Cloud) or .env file (local).")
             if not anthropic_key:
-                raise ValueError("ANTHROPIC_API_KEY is not set or is empty")
+                raise ValueError("ANTHROPIC_API_KEY is not set. Please add it to Streamlit Secrets (Cloud) or .env file (local).")
             
             # Initialize OpenAI client - latest SDK uses api_key parameter
             # OpenAI SDK 2.0+ uses: OpenAI(api_key=key)
